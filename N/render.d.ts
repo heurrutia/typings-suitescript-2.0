@@ -165,12 +165,16 @@ interface TemplateRenderer {
 }
 
 interface AddQueryOptions {
-    /** Template name. */
+    /** Name of the results iterator variable referred to in the template. */
     templateName: string;
     /** Workbook query definition. Required if options.id is not specified. */
     query?: Query;
     /** Workbook query ID. Required if options.query is not specified. */
     id?: string;
+    /** Page index. */
+    pageIndex?: number;
+    /** Page size. The minimum value is 5, and the maximum value is 1000. */
+    pageSize?: number;
 }
 
 interface TransactionOptions {
