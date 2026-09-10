@@ -1,6 +1,10 @@
 /**
  * The N/llm module supports generative artificial intelligence (AI) capabilities in SuiteScript.
  * You can use this module to send requests to the large language models (LLMs) supported by NetSuite and to receive LLM responses to use in your scripts.
+ *
+ * Methods in this module that send requests to an LLM consume NetSuite AI Units.
+ * Use llm.getRemainingUsage() to check the number of AI Units remaining.
+ * For more information, see NetSuite AI Units and NetSuite Features and AI Units FAQ in the NetSuite Help Center.
  */
 
 import type {File} from './file';
@@ -241,6 +245,8 @@ export function createToolResult(options: {
  *
  * You can use embeddings to compare the similarity of a set of inputs, which is useful for finding similar items based on item attributes,
  * implementing semantic search, and applying text classification or text clustering.
+ *
+ * This method consumes AI Units.
  * @governance 50
  */
 export const embed: IEmbedFunction;
@@ -252,9 +258,7 @@ export const embed: IEmbedFunction;
  * The resulting prompt is sent to the LLM, and this method returns the LLM response, similar to the llm.generateText(options) method.
  * For more information about Prompt Studio, see Prompt Studio.
  *
- * When unlimited usage mode is used, this method accepts the OCI configuration parameters.
- * You can also specify OCI configuration parameters on the SuiteScript tab of the AI Preferences page.
- * For more information, see Using Your Own OCI Configuration for SuiteScript Generative AI APIs.
+ * This method consumes AI Units.
  * @governance 100
  */
 export const evaluatePrompt: IEvaluatePromptFunction;
@@ -264,7 +268,7 @@ export const executePrompt: IEvaluatePromptFunction;
 
 /**
  * Takes the ID of an existing prompt and values for variables used in the prompt and returns the streamed response from the LLM.
- * When you're using unlimited usage mode, this method also accepts the OCI configuration parameters.
+ * This method consumes AI Units.
  * @governance 100
  */
 export const evaluatePromptStreamed: IEvaluatePromptStreamedFunction;
@@ -274,7 +278,7 @@ export const executePromptStreamed: IEvaluatePromptStreamedFunction;
 
 /**
  * Takes a prompt and parameters for the LLM and returns the response from the LLM.
- * When you're using unlimited usage mode, this method also accepts the OCI configuration parameters.
+ * This method consumes AI Units.
  * @governance 100
  */
 export const generateText: GenerateTextFunction;
@@ -288,6 +292,8 @@ export const chat: GenerateTextFunction;
  * This method is similar to llm.generateText(options) but returns the LLM response as a stream.
  * After calling this method, you can access the partial response (using the StreamedResponse.text property of the returned llm.StreamedResponse object) before the entire response has been generated.
  * You can also use an iterator to examine each token returned by the LLM.
+ *
+ * This method consumes AI Units.
  * @governance 100
  */
 export const generateTextStreamed: GenerateTextStreamedFunction;
@@ -295,10 +301,25 @@ export const generateTextStreamed: GenerateTextStreamedFunction;
 /** Alias for llm.generateTextStreamed(options). Uses the same parameters and can throw the same errors. */
 export const chatStreamed: GenerateTextStreamedFunction;
 
-/** Returns the number of free requests in the current month. */
+/**
+ * Returns the number of AI Units remaining for regular LLM requests (such as llm.generateText(options)) and embed requests (such as llm.embed(options)).
+ * For more information, see NetSuite AI Units and NetSuite Features and AI Units FAQ in the NetSuite Help Center.
+ * @governance none
+ * @since 2026.1
+ */
+export const getRemainingUsage: GetRemainingUsageFunction;
+
+/**
+ * Returns the number of free requests in the current month.
+ * @deprecated As of 2026.2, use llm.getRemainingUsage() instead. This method remains available for compatibility and calls llm.getRemainingUsage().
+ */
 export const getRemainingFreeUsage: GetRemainingFreeUsageFunction;
 
-/** Returns the number of free embeddings requests in the current month. This method tracks free requests for embed API calls, such as llm.embed(options). To track free requests for non-embed API calls (such as llm.generateText(options)), use llm.getRemainingFreeUsage() instead. */
+/**
+ * Returns the number of free embeddings requests in the current month.
+ * @deprecated As of 2026.2, use llm.getRemainingUsage() instead. Embed usage is no longer tracked separately.
+ * This method remains available for compatibility and calls llm.getRemainingUsage().
+ */
 export const getRemainingFreeEmbedUsage: GetRemainingFreeUsageFunction;
 
 interface IEmbedFunction {
@@ -326,8 +347,16 @@ interface GenerateTextStreamedFunction {
     promise(options: IGenerateTextStreamedOptions | IGenerateTextStreamedToolResultsOptions): Promise<StreamedResponse>;
 }
 
-interface GetRemainingFreeUsageFunction {
+interface GetRemainingUsageFunction {
     (): number;
+    promise(): Promise<number>;
+}
+
+/** @deprecated As of 2026.2, use llm.getRemainingUsage() and llm.getRemainingUsage.promise() instead. */
+interface GetRemainingFreeUsageFunction {
+    /** @deprecated As of 2026.2, use llm.getRemainingUsage() instead. Remains available for compatibility and calls llm.getRemainingUsage(). */
+    (): number;
+    /** @deprecated As of 2026.2, use llm.getRemainingUsage.promise() instead. Remains available for compatibility and calls llm.getRemainingUsage.promise(). */
     promise(): Promise<number>;
 }
 
@@ -358,7 +387,10 @@ interface IEmbedOptions {
     dimensions?: number;
     /** The embed model family to use. Use values from llm.EmbedModelFamily to set this value. If not specified, the Cohere Embed model (cohere.embed-v4.0) is used. */
     embedModelFamily?: EmbedModelFamily | string;
-    /** Configuration needed for unlimited usage through OCI Generative AI Service. Required only when accessing the LLM through an Oracle Cloud Account and the OCI Generative AI Service. SuiteApps installed to target accounts are prevented from using the free usage pool for N/llm and must use the OCI configuration. */
+    /**
+     * This object is no longer supported. Any values specified in this object are ignored.
+     * @deprecated As of 2026.2, the ociConfig object is no longer supported for SuiteScript AI APIs. Providing it doesn't generate an error, but the values are ignored.
+     */
     ociConfig?: IOCIConfig;
     /** The amount of time to wait for a response from the LLM, in milliseconds. If not specified, the default value is 30,000. */
     timeout?: number;
@@ -370,14 +402,8 @@ interface IEvaluatePromptOptions {
     /** ID of the prompt to evaluate. */
     id: string | number;
     /**
-     * Configuration needed for unlimited usage through OCI Generative AI Service.
-     * Required only when accessing the LLM through an Oracle Cloud Account and the OCI Generative AI Service.
-     * SuiteApps installed to target accounts are prevented from using the free usage pool for N/llm and must use the OCI configuration.
-     *
-     * Instead of specifying OCI configuration details using this parameter, you can specify them on the SuiteScript tab of the AI Preferences page.
-     * When you do so, those OCI configuration details are used for all scripts in your account that use N/llm module methods, and unlimited usage mode is enabled for those scripts.
-     * If you specify OCI configuration details in both places (using this parameter and using the SuiteScript tab of the AI Preferences page), the details provided in this parameter override those that are specified on the SuiteScript tab.
-     * For more information, see Using Your Own OCI Configuration for SuiteScript Generative AI APIs.
+     * This object is no longer supported. Any values specified in this object are ignored.
+     * @deprecated As of 2026.2, the ociConfig object is no longer supported for SuiteScript AI APIs. Providing it doesn't generate an error, but the values are ignored.
      */
     ociConfig?: IOCIConfig;
     /** Timeout in milliseconds, defaults to 30,000. */
@@ -406,9 +432,8 @@ interface IGenerateTextBaseOptions {
     /** Parameters of the model. For more information about the model parameters, refer to Offered Pretrained Foundational Models in Generative AI in the Oracle Cloud Infrastructure Documentation. */
     modelParameters?: IModelParameters;
     /**
-     * Configuration needed for unlimited usage through OCI Generative AI Service.
-     * Required only when accessing the LLM through an Oracle Cloud Account and the OCI Generative AI Service.
-     * SuiteApps installed to target accounts are prevented from using the free usage pool for N/llm and must use the OCI configuration.
+     * This object is no longer supported. Any values specified in this object are ignored.
+     * @deprecated As of 2026.2, the ociConfig object is no longer supported for SuiteScript AI APIs. Providing it doesn't generate an error, but the values are ignored.
      */
     ociConfig?: IOCIConfig;
     /** Preamble override for the LLM. A preamble is the initial context or guiding message for an LLM. For more details about using a preamble, refer to Offered Pretrained Foundational Models in Generative AI in the Oracle Cloud Infrastructure Documentation. */
@@ -444,8 +469,12 @@ interface IGenerateTextOptions extends IGenerateTextBaseOptions {
      */
     responseFormat?: object;
     /**
-     * @deprecated As of 2025.1 this parameter is no longer included in the Help documentation for llm.generateText(options),
-     * and the Meta Llama (vision-capable) model family is no longer listed in llm.ModelFamily.
+     * An image to query. You can send an image (as a file.File object) to the LLM and ask questions about the image.
+     * For example, you can ask for advanced image captions, a detailed description of the image, or information about charts and graphs in the image.
+     *
+     * Image processing is available only when using the Cohere Command A Vision model (cohere.command-a-vision), so set options.modelFamily to llm.ModelFamily.COHERE_COMMAND_VISION.
+     * This parameter was previously supported by the Meta Llama model family, which is no longer listed in llm.ModelFamily.
+     * @since 2026.2
      */
     image?: File;
 }
@@ -468,6 +497,12 @@ interface IGenerateTextToolResultsOptions extends IGenerateTextBaseOptions {
 interface IGenerateTextStreamedOptions extends IGenerateTextBaseOptions {
     /** Prompt for the LLM. Required if options.toolResults is not specified. */
     prompt: string;
+    /**
+     * An image to query. You can send an image (as a file.File object) to the LLM and ask questions about the image.
+     * Image processing is available only when using the Cohere Command A Vision model (cohere.command-a-vision), so set options.modelFamily to llm.ModelFamily.COHERE_COMMAND_VISION.
+     * @since 2026.2
+     */
+    image?: File;
 }
 
 /**
@@ -517,6 +552,10 @@ interface IModelParameters {
     topP?: number;
 }
 
+/**
+ * OCI configuration details.
+ * @deprecated As of 2026.2, the ociConfig object is no longer supported for SuiteScript AI APIs (N/llm and N/documentCapture). Any values specified in this object are ignored.
+ */
 export interface IOCIConfig { // Also referenced in N/documentCapture
     /** Compartment OCID. For more information, refer to Managing Compartments in the Oracle Cloud Infrastructure Documentation. */
     compartmentId?: string;
@@ -562,6 +601,10 @@ declare enum ModelFamily {
     COHERE_COMMAND = 'cohere.command-a-03-2025',
     /** Always uses the latest supported Cohere Command model. Supports RAG (documents) and preambles. */
     COHERE_COMMAND_LATEST = 'cohere.command-a-03-2025',
+    /** Cohere Command A Vision. Required when providing an image using the options.image parameter. @since 2026.2 */
+    COHERE_COMMAND_VISION = 'cohere.command-a-vision',
+    /** Always uses the latest supported Cohere Command Vision model. Required when providing an image using the options.image parameter. @since 2026.2 */
+    COHERE_COMMAND_VISION_LATEST = 'cohere.command-a-vision',
     /** OpenAI gpt-oss 120B. Supports preambles; does not support RAG (documents). */
     GPT_OSS = 'openai.gpt-oss-120b',
     /** Always uses the latest supported OpenAI gpt-oss model. Supports preambles; does not support RAG (documents). */
