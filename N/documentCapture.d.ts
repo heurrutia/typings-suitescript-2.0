@@ -102,6 +102,10 @@ interface DocumentToStructureOptions {
     documentType?: DocumentType;
     features?: Feature[];
     language?: Language;
+    /**
+     * This object is no longer supported. Any values specified in this object are ignored.
+     * @deprecated As of 2026.2, the ociConfig object is no longer supported for SuiteScript AI APIs. Providing it doesn't generate an error, but the values are ignored.
+     */
     ociConfig?: IOCIConfig;
     timeout?: number;
 }
@@ -144,11 +148,19 @@ interface GetRemainingConcurrencyFunction {
 
 export const getRemainingConcurrency: GetRemainingConcurrencyFunction;
 
+/** @deprecated As of 2026.2, use llm.getRemainingUsage() and llm.getRemainingUsage.promise() from the N/llm module instead. */
 interface GetRemainingFreeUsageFunction {
+    /** @deprecated As of 2026.2, use llm.getRemainingUsage() instead. Remains available for compatibility and calls llm.getRemainingUsage(). */
     (): number;
+    /** @deprecated As of 2026.2, use llm.getRemainingUsage.promise() instead. Remains available for compatibility and calls llm.getRemainingUsage.promise(). */
     promise(): Promise<number>;
 }
 
+/**
+ * Returns the number of free requests in the current month.
+ * @deprecated As of 2026.2, use llm.getRemainingUsage() from the N/llm module instead, which returns the number of AI Units remaining.
+ * This method remains available for compatibility and calls llm.getRemainingUsage().
+ */
 export const getRemainingFreeUsage: GetRemainingFreeUsageFunction;
 
 export function parseResult(options: { file: file.File }): Document;
